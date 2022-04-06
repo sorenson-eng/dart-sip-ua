@@ -3,6 +3,7 @@ import 'events.dart';
 
 export 'call_events.dart';
 export 'events.dart';
+export 'incoming_message_events.dart';
 export 'message_events.dart';
 export 'options_events.dart';
 export 'refer_events.dart';
