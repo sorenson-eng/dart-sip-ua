@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:sip_ua/src/data.dart';
+import 'data.dart';
+import 'subscriber.dart';
 import 'config.dart' as config;
 import 'config.dart';
 import 'constants.dart' as DartSIP_C;
@@ -123,8 +124,11 @@ class UA extends EventManager {
 
     // Initialize registrator.
     _registrator = Registrator(this);
+
+    _subscribers = <String?, Subscriber>{};
   }
 
+  late Map<String?, Subscriber> _subscribers;
   Map<String, dynamic>? _cache;
   Settings? _configuration;
   DynamicSettings? _dynConfiguration;
@@ -204,6 +208,25 @@ class UA extends EventManager {
 
     _dynConfiguration!.register = false;
     _registrator.unregister(all);
+  }
+
+  /** 
+   * Create subscriber instance
+   */
+  Subscriber subscribe(
+    String target,
+    String eventName,
+    String accept, [
+    int expires = 900,
+    String? contentType,
+    String? allowEvents,
+    Map<String, dynamic> requestParams = const <String, dynamic>{},
+    List<String> extraHeaders = const <String>[],
+  ]) {
+    logger.debug('subscribe()');
+
+    return Subscriber(this, target, eventName, accept, expires, contentType,
+        allowEvents, requestParams, extraHeaders);
   }
 
   /**
@@ -328,6 +351,19 @@ class UA extends EventManager {
       }
     });
 
+    // Run _terminate on ever subscription
+    _subscribers.forEach((String? key, _) {
+      if (_subscribers.containsKey(key)) {
+        logger.debug('closing subscription $key');
+        try {
+          Subscriber subscriber = _subscribers[key]!;
+          subscriber.terminate(null);
+        } catch (error, s) {
+          Log.e(error.toString(), null, s);
+        }
+      }
+    });
+
     // Run  _close_ on every applicant.
     for (Applicant applicant in _applicants) {
       try {
@@ -435,6 +471,20 @@ class UA extends EventManager {
   void destroyTransaction(TransactionBase transaction) {
     _transactions.removeTransaction(transaction);
     emit(EventTransactionDestroyed(transaction: transaction));
+  }
+
+  /**
+   * Subscriber
+   */
+  void newSubscriber({required Subscriber sub}) {
+    _subscribers[sub.id] = sub;
+  }
+
+  /**
+   * Subscriber destroyed.
+   */
+  void destroySubscriber(Subscriber sub) {
+    _subscribers.remove(sub.id);
   }
 
   /**
@@ -607,6 +657,12 @@ class UA extends EventManager {
 
         return;
       }
+    } else if (method == SipMethod.SUBSCRIBE) {
+      if (listeners['newSubscribe']?.length == 0) {
+        request.reply(405);
+
+        return;
+      }
     }
 
     Dialog? dialog;
@@ -623,7 +679,7 @@ class UA extends EventManager {
               dialog = _findDialog(
                   replaces.call_id, replaces.from_tag!, replaces.to_tag!);
               if (dialog != null) {
-                session = dialog.owner;
+                session = dialog.owner as RTCSession?;
                 if (!session!.isEnded()) {
                   session.receiveRequest(request);
                 } else {
@@ -665,6 +721,9 @@ class UA extends EventManager {
           emit(EventSipEvent(request: request));
           request.reply(200);
           break;
+        case SipMethod.SUBSCRIBE:
+          emit(EventOnNewSubscribe(request: request));
+          break;
         default:
           request.reply(405);
           break;
@@ -678,10 +737,10 @@ class UA extends EventManager {
       if (dialog != null) {
         dialog.receiveRequest(request);
       } else if (method == SipMethod.NOTIFY) {
-        session =
-            _findSession(request.call_id!, request.from_tag, request.to_tag);
-        if (session != null) {
-          session.receiveRequest(request);
+        Subscriber? sub = _findSubscriber(
+            request.call_id!, request.from_tag!, request.to_tag!);
+        if (sub != null) {
+          sub.receiveRequest(request);
         } else {
           logger
               .debug('received NOTIFY request for a non existent subscription');
@@ -703,6 +762,13 @@ class UA extends EventManager {
   // ============
   // Utils.
   // ============
+
+  Subscriber? _findSubscriber(String call_id, String from_tag, String to_tag) {
+    String id = call_id;
+    Subscriber? sub = _subscribers[id];
+
+    return sub;
+  }
 
   /**
    * Get the session to which the request belongs to, if any.
