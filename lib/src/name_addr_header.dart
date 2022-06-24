@@ -2,7 +2,7 @@ import 'grammar.dart';
 import 'uri.dart';
 import 'utils.dart';
 
-// derived from https://www.rfc-editor.org/rfc/rfc3261.html#section-25 (dfferent from spec: DEL as illegal)
+// derived from https://www.rfc-editor.org/rfc/rfc3261.html#section-25 (*different from RFC: DEL as illegal)
 final RegExp illegalDisplayNameCharacters = RegExp(r'\x0A|\x0D|\x7F'); // LF, CR, DEL
 final String illegalReplacement = '';
 // need to escape ASCII (0x00-0x7F) except for LF 0x0A, CR 0x0D, SPACE 0x20, ! 0x21, 'regular' chars (0x23-5B,5D-7E), and DEL 0x7F
