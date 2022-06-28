@@ -3,7 +3,8 @@ Anthony VanLent's notes for dealing with parser:
 The parser generator is `dart v1.24.3` specific. It only runs on `dart v1.24.3`, and will spit out `dart v1.xx.x` complient code. This means the auto generated *grammar_parser.dart* needs some modifications to work in dart v2. It also generated some functions that need changing to massage the unicode to utf8 gap.
 
 ## Generate parser (*grammar_parser.dart*):
-- Install `Dart 1.24.3`.
+- Install `Dart 1.24.3`.  
+NOTE: At least on windows, it seems nearly impossible to have multiple dart versions installed if you have flutter installed. I had to use a VM.
 
   `download from `[dart sdk archive](https://dart.dev/get-dart/archive)
 
