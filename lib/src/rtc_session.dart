@@ -1679,13 +1679,15 @@ class RTCSession extends EventManager implements Owner {
       if (sdpString == null || sdpString.isEmpty) {
         return desc;
       }
-      try{ 
+      try {
         Map<String, dynamic> sdp = sdp_transform.parse(sdpString);
         for (Map<String, dynamic> media in sdp['media']) {
-            media['candidates']?.removeWhere((dynamic dynCandidate) {
-              final Map<String, dynamic> candidate = dynCandidate as Map<String, dynamic>;
-              return candidate.containsKey('transport') && candidate['transport'] == 'tcp';
-            });
+          media['candidates']?.removeWhere((dynamic dynCandidate) {
+            final Map<String, dynamic> candidate =
+                dynCandidate as Map<String, dynamic>;
+            return candidate.containsKey('transport') &&
+                candidate['transport'] == 'tcp';
+          });
         }
         desc.sdp = sdp_transform.write(sdp, null);
       } catch (e) {
