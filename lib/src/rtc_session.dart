@@ -1673,7 +1673,7 @@ class RTCSession extends EventManager implements Owner {
       }
     }
 
-    // TODO: remove when VPE can hadle WebRTC. VPE buffer overflows because of too many candidates
+    // TODO: remove when VPE can handle WebRTC. VPE buffer overflows because of too many candidates
     RTCSessionDescription vpeSupportMangling(RTCSessionDescription desc) {
       String? sdpString = desc.sdp;
       if (sdpString == null || sdpString.isEmpty) {
