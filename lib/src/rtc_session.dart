@@ -1682,8 +1682,7 @@ class RTCSession extends EventManager implements Owner {
       try{ 
         Map<String, dynamic> sdp = sdp_transform.parse(sdpString);
         for (Map<String, dynamic> media in sdp['media']) {
-            final List<dynamic>? candidates = media['candidates'];
-            candidates?.removeWhere((dynamic dynCandidate) {
+            media['candidates']?.removeWhere((dynamic dynCandidate) {
               final Map<String, dynamic> candidate = dynCandidate as Map<String, dynamic>;
               return candidate.containsKey('transport') && candidate['transport'] == 'tcp';
             });
