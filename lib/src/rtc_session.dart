@@ -1673,6 +1673,29 @@ class RTCSession extends EventManager implements Owner {
       }
     }
 
+    // TODO: remove when VPE can handle WebRTC. VPE buffer overflows because of too many candidates
+    RTCSessionDescription vpeSupportMangling(RTCSessionDescription desc) {
+      String? sdpString = desc.sdp;
+      if (sdpString == null || sdpString.isEmpty) {
+        return desc;
+      }
+      try {
+        Map<String, dynamic> sdp = sdp_transform.parse(sdpString);
+        for (Map<String, dynamic> media in sdp['media']) {
+          media['candidates']?.removeWhere((dynamic dynCandidate) {
+            final Map<String, dynamic> candidate =
+                dynCandidate as Map<String, dynamic>;
+            return candidate.containsKey('transport') &&
+                candidate['transport'] == 'tcp';
+          });
+        }
+        desc.sdp = sdp_transform.write(sdp, null);
+      } catch (e) {
+        // pass
+      }
+      return desc;
+    }
+
     // Add 'pc.onicencandidate' event handler to resolve on last candidate.
     bool finished = false;
 
@@ -1686,7 +1709,7 @@ class RTCSession extends EventManager implements Owner {
         RTCSessionDescription? desc = await _connection!.getLocalDescription();
         logger.debug('emit "sdp"');
         emit(EventSdp(originator: 'local', type: type, sdp: desc!.sdp));
-        completer.complete(desc);
+        completer.complete(vpeSupportMangling(desc));
       }
     }
 
@@ -1731,7 +1754,7 @@ class RTCSession extends EventManager implements Owner {
       RTCSessionDescription? desc = await _connection!.getLocalDescription();
       logger.debug('emit "sdp"');
       emit(EventSdp(originator: 'local', type: type, sdp: desc!.sdp));
-      return desc;
+      return vpeSupportMangling(desc);
     }
 
     return completer.future;
